@@ -43,33 +43,32 @@ function decideIteration(table,x,y,order,dir){
   const c = (dir<2 ? 1 : -1)*size;
   const x2 = x+c;
   const y2 = y-c;
-  //console.log(findSum(table,x,x2,y2,y))
-  return (findSum(table,x,x2,y2,y) < 500*size)
+  return (findSum(table,x,x2,y2,y) < 510*size)
 }
 function addOrder(dir, order, line, fill, table){
   if (dir == 0){
-    // make the pattern right = uurrrlddr
+    // make the pattern right = urrd
     addlevel(order-1, line, 1, fill, table);
     addlevel(order-1, line, 0, fill, table);
     addlevel(order-1, line, 0, fill, table);
     addlevel(order-1, line, 3, fill, table);
   }
   if (dir == 1){
-    // make the pattern up = rruuudllu
+    // make the pattern up = ruul
     addlevel(order-1, line, 0, fill, table);
     addlevel(order-1, line, 1, fill, table);
     addlevel(order-1, line, 1, fill, table);
     addlevel(order-1, line, 2, fill, table);
   }
   if (dir == 2){
-    // make the pattern left = ddlllruul
+    // make the pattern left = dllu
     addlevel(order-1, line, 3, fill, table);
     addlevel(order-1, line, 2, fill, table);
     addlevel(order-1, line, 2, fill, table);
     addlevel(order-1, line, 1, fill, table);
   }
   if (dir == 3){
-    // make the pattern down = lldddurrd
+    // make the pattern down = lddr
     addlevel(order-1, line, 2, fill, table);
     addlevel(order-1, line, 3, fill, table);
     addlevel(order-1, line, 3, fill, table);
@@ -95,24 +94,24 @@ function addFill(fill, line, dir, x, y, c, table){
   function fill2(){
     // add 3 extra points
     if (dir == 0){
-      line.push([x+1*c/4,y-c]);
-      line.push([x+2*c/4,y]);
-      line.push([x+3*c/4,y-c]);
+      line.push([x+c,y-c/3*2]);
+      line.push([x+c/2,y-c]);
+      line.push([x,y-c/3*2]);
     }
     if (dir == 1){
-      line.push([x+c,y-1*c/4]);
-      line.push([x,y-2*c/4]);
-      line.push([x+c,y-3*c/4]);
+      line.push([x+c/3*2,y-c]);
+      line.push([x+c,y-2*c/4]);
+      line.push([x+c/3*2,y]);
     }
     if (dir == 2){
-      line.push([x-1*c/4,y+c]);
-      line.push([x-2*c/4,y]);
-      line.push([x-3*c/4,y+c]);
+      line.push([x-c,y+c/3*2]);
+      line.push([x-c/2,y+c]);
+      line.push([x,y+c/3*2]);
     }
     if (dir == 3){
-      line.push([x-c,y+1*c/4]);
-      line.push([x,y+2*c/4]);
-      line.push([x-c,y+3*c/4]);
+      line.push([x-c/3*2,y+c]);
+      line.push([x-c,y+2*c/4]);
+      line.push([x-c/3*2,y]);
     }
   }
   if (fill == '1'){
@@ -124,7 +123,7 @@ function addFill(fill, line, dir, x, y, c, table){
     const x2 = x+d;
     const y2 = y-d;
     //console.log(findSum(table,x,x2,y2,y))
-    if (findSum(table,x,x2,y2,y) < 300*c){
+    if (findSum(table,x,x2,y2,y) < 340*c){
       fill1()
     } else {
       fill2()
