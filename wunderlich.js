@@ -5,7 +5,7 @@ importScripts('helpers.js')
 
 postMessage(['sliders', defaultControls.concat([
   {label: 'Order', value: 5, min: 1, max: 6},
-  {label: 'Fill', type:'checkbox'},
+  {label: 'Fill', type:'select', value:'off', options:['off', '1', '2', 'dynamic']}
 ])]);
  
 
@@ -18,24 +18,9 @@ function addlevel(order, line, dir, fill, table){
   // 1 bottom to top
   // 2 right to left
   // 3 top to bottom
-  s = decideIteration(table,x,y,order,dir);
-  if (order == 1 || s){
-    c = Math.pow(3,order);
-    if (fill){
-      // add extra point
-      if (dir == 0){
-        line.push([x+c/2,y-c]);
-      }
-      if (dir == 1){
-        line.push([x+c,y-c/2]);
-      }
-      if (dir == 2){
-        line.push([x-c/2,y+c]);
-      }
-      if (dir == 3){
-        line.push([x-c,y+c/2]);
-      }
-    }
+  if (order == 1 || decideIteration(table,x,y,order,dir)){
+    const c = Math.pow(3,order);
+    addFill(fill, line, dir, x, y, c, table); // add optional fill 
     // add last point
     if (dir == 0){
       line.push([x+c,y]);
@@ -50,65 +35,122 @@ function addlevel(order, line, dir, fill, table){
       line.push([x,y+c]);
     }
   } else {
-    if (dir == 0){
-      // make the pattern right = uurrrlddr
-      addlevel(order-1, line, 1, fill, table);
-      addlevel(order-1, line, 1, fill, table);
-      addlevel(order-1, line, 0, fill, table);
-      addlevel(order-1, line, 0, fill, table);
-      addlevel(order-1, line, 0, fill, table);
-      addlevel(order-1, line, 2, fill, table);
-      addlevel(order-1, line, 3, fill, table);
-      addlevel(order-1, line, 3, fill, table);
-      addlevel(order-1, line, 0, fill, table);
-    }
-    if (dir == 1){
-      // make the pattern up = rruuudllu
-      addlevel(order-1, line, 0, fill, table);
-      addlevel(order-1, line, 0, fill, table);
-      addlevel(order-1, line, 1, fill, table);
-      addlevel(order-1, line, 1, fill, table);
-      addlevel(order-1, line, 1, fill, table);
-      addlevel(order-1, line, 3, fill, table);
-      addlevel(order-1, line, 2, fill, table);
-      addlevel(order-1, line, 2, fill, table);
-      addlevel(order-1, line, 1, fill, table);
-    }
-    if (dir == 2){
-      // make the pattern left = ddlllruul
-      addlevel(order-1, line, 3, fill, table);
-      addlevel(order-1, line, 3, fill, table);
-      addlevel(order-1, line, 2, fill, table);
-      addlevel(order-1, line, 2, fill, table);
-      addlevel(order-1, line, 2, fill, table);
-      addlevel(order-1, line, 0, fill, table);
-      addlevel(order-1, line, 1, fill, table);
-      addlevel(order-1, line, 1, fill, table);
-      addlevel(order-1, line, 2, fill, table);
-    }
-    if (dir == 3){
-      // make the pattern down = lldddurrd
-      addlevel(order-1, line, 2, fill, table);
-      addlevel(order-1, line, 2, fill, table);
-      addlevel(order-1, line, 3, fill, table);
-      addlevel(order-1, line, 3, fill, table);
-      addlevel(order-1, line, 3, fill, table);
-      addlevel(order-1, line, 1, fill, table);
-      addlevel(order-1, line, 0, fill, table);
-      addlevel(order-1, line, 0, fill, table);
-      addlevel(order-1, line, 3, fill, table);
-    }
+    addOrder(dir, order, line, fill, table)
   }
 }
 function decideIteration(table,x,y,order,dir){
-  size = Math.pow(3,order);
-  c = (dir<2 ? 1 : -1)*size;
-  x2 = x+c;
-  y2 = y-c;
+  const size = Math.pow(3,order);
+  const c = (dir<2 ? 1 : -1)*size;
+  const x2 = x+c;
+  const y2 = y-c;
   //console.log(findSum(table,x,x2,y2,y))
   return (findSum(table,x,x2,y2,y) < 1530*size)
 }
-
+function addOrder(dir, order, line, fill, table){
+  if (dir == 0){
+    // make the pattern right = uurrrlddr
+    addlevel(order-1, line, 1, fill, table);
+    addlevel(order-1, line, 1, fill, table);
+    addlevel(order-1, line, 0, fill, table);
+    addlevel(order-1, line, 0, fill, table);
+    addlevel(order-1, line, 0, fill, table);
+    addlevel(order-1, line, 2, fill, table);
+    addlevel(order-1, line, 3, fill, table);
+    addlevel(order-1, line, 3, fill, table);
+    addlevel(order-1, line, 0, fill, table);
+  }
+  if (dir == 1){
+    // make the pattern up = rruuudllu
+    addlevel(order-1, line, 0, fill, table);
+    addlevel(order-1, line, 0, fill, table);
+    addlevel(order-1, line, 1, fill, table);
+    addlevel(order-1, line, 1, fill, table);
+    addlevel(order-1, line, 1, fill, table);
+    addlevel(order-1, line, 3, fill, table);
+    addlevel(order-1, line, 2, fill, table);
+    addlevel(order-1, line, 2, fill, table);
+    addlevel(order-1, line, 1, fill, table);
+  }
+  if (dir == 2){
+    // make the pattern left = ddlllruul
+    addlevel(order-1, line, 3, fill, table);
+    addlevel(order-1, line, 3, fill, table);
+    addlevel(order-1, line, 2, fill, table);
+    addlevel(order-1, line, 2, fill, table);
+    addlevel(order-1, line, 2, fill, table);
+    addlevel(order-1, line, 0, fill, table);
+    addlevel(order-1, line, 1, fill, table);
+    addlevel(order-1, line, 1, fill, table);
+    addlevel(order-1, line, 2, fill, table);
+  }
+  if (dir == 3){
+    // make the pattern down = lldddurrd
+    addlevel(order-1, line, 2, fill, table);
+    addlevel(order-1, line, 2, fill, table);
+    addlevel(order-1, line, 3, fill, table);
+    addlevel(order-1, line, 3, fill, table);
+    addlevel(order-1, line, 3, fill, table);
+    addlevel(order-1, line, 1, fill, table);
+    addlevel(order-1, line, 0, fill, table);
+    addlevel(order-1, line, 0, fill, table);
+    addlevel(order-1, line, 3, fill, table);
+  }
+}
+function addFill(fill, line, dir, x, y, c, table){
+  function fill1(){
+    // add extra point
+    if (dir == 0){
+      line.push([x+c/2,y-c]);
+    }
+    if (dir == 1){
+      line.push([x+c,y-c/2]);
+    }
+    if (dir == 2){
+      line.push([x-c/2,y+c]);
+    }
+    if (dir == 3){
+      line.push([x-c,y+c/2]);
+    }
+  }
+  function fill2(){
+    // add 3 extra points
+    if (dir == 0){
+      line.push([x+1*c/4,y-c]);
+      line.push([x+2*c/4,y]);
+      line.push([x+3*c/4,y-c]);
+    }
+    if (dir == 1){
+      line.push([x+c,y-1*c/4]);
+      line.push([x,y-2*c/4]);
+      line.push([x+c,y-3*c/4]);
+    }
+    if (dir == 2){
+      line.push([x-1*c/4,y+c]);
+      line.push([x-2*c/4,y]);
+      line.push([x-3*c/4,y+c]);
+    }
+    if (dir == 3){
+      line.push([x-c,y+1*c/4]);
+      line.push([x,y+2*c/4]);
+      line.push([x-c,y+3*c/4]);
+    }
+  }
+  if (fill == '1'){
+    fill1()
+  } else if (fill == '2'){
+    fill2()
+  } else if (fill == 'dynamic'){
+    const d = (dir<2 ? 1 : -1)*c;
+    const x2 = x+d;
+    const y2 = y-d;
+    //console.log(findSum(table,x,x2,y2,y))
+    if (findSum(table,x,x2,y2,y) < 765*c){
+      fill1()
+    } else {
+      fill2()
+    }
+  }
+}
 function transformToMatrix(getPixel, scale, maxsize){
   // by first calculating this intergral matrix we can find the
   // sum of over an arbitrary rectangle by only looking at the corners.
@@ -134,22 +176,25 @@ function findSum(table,xl,xr,yt,yb){
   return table[xr][yb]+table[xl][yt]-table[xl][yb]-table[xr][yt]
 }
 
+
+
 onmessage = function(e) {
   const [ config, pixData ] = e.data;
-  getPixel = pixelProcessor(config, pixData)
+  const getPixel = pixelProcessor(config, pixData)
   const order = config.Order;
-  const fill = config.Fill;
 
-  maxsize = Math.pow(3,order)
-  hscale = config.width/(maxsize)
-  vscale = config.height/(maxsize)
-  scale = [hscale,vscale] // scale represents mismatch between pixels and line units
+  const fill = config.Fill
+
+  const maxsize = Math.pow(3,order)
+  const hscale = config.width/(maxsize)
+  const vscale = config.height/(maxsize)
+  const scale = [hscale,vscale] // scale represents mismatch between pixels and line units
 
   // step 1: transform image to fit square matrix size 3**order
-  table = transformToMatrix(getPixel,scale,maxsize);
+  let table = transformToMatrix(getPixel,scale,maxsize);
   
   // step 2: genarate using this matrix
-  line = [[0,maxsize]] // add first point
+  let line = [[0,maxsize]] // add first point
   addlevel(order, line, 0, fill, table);
 
   // step 3: scale output to fit the canvas dimensions
