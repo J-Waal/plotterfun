@@ -21,24 +21,32 @@ onmessage = function(e) {
   }
 
   function combine(listA, listB, smoothing) {
-    listAstrip = listA.slice(0,-smoothing)
-    listBstrip = listB.slice(smoothing)
-    listAtoMerge = listA.slice(-smoothing)
-    listBtoMerge = listB.slice(0,smoothing)
-    let middlePart = [];
-    for (let i = 0; i < smoothing; i++){
-      xA = listAtoMerge[i][0]
-      xB = listBtoMerge[i][0]
-      yA = listAtoMerge[i][1]
-      yB = listBtoMerge[i][1]
-      a = (smoothing-i-1)/(smoothing-1)
-      b = i/(smoothing-1)
-      //console.log(a,b,a+b)
-      x = a*xA + b*xB
-      y = a*yA + b*yB
-      middlePart.push([x,y])
+    if (smoothing) {
+      smoothing += 1;
+      listAstrip = listA.slice(0,-smoothing)
+      listBstrip = listB.slice(smoothing)
+      listAtoMerge = listA.slice(-smoothing)
+      listBtoMerge = listB.slice(0,smoothing)
+      //console.log(listAtoMerge,listBtoMerge)
+      let middlePart = [];
+      for (let i = 0; i < smoothing; i++){
+        xA = listAtoMerge[i][0]
+        xB = listBtoMerge[i][0]
+        yA = listAtoMerge[i][1]
+        yB = listBtoMerge[i][1]
+        a = (smoothing-i-1)/(smoothing-1)
+        b = i/(smoothing-1)
+        //console.log(a,b,a+b)
+        x = a*xA + b*xB
+        y = a*yA + b*yB
+        middlePart.push([x,y])
+      }
+      //console.log(listAstrip,middlePart,listBstrip)
+      //console.log([].concat(listAstrip,middlePart,listBstrip))
+      return [].concat(listAstrip,middlePart,listBstrip)
+    } else {
+      return listA.concat(listB);
     }
-    return [].concat(listAstrip,middlePart,listBstrip)
   }
 
   function makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize) {
