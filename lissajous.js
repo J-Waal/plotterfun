@@ -5,6 +5,7 @@ postMessage(['sliders', [
   //{label: 'SubSteps', value: 50, min: 10, max: 500},
   {label: 'Smoothing', value: 10, min: 0, max: 50},
   {label: 'Fill Boundary', type:'checkbox'},
+  {label: 'Order', value: 5, min: 0, max: 10},
 ]]);
 
 
@@ -52,23 +53,63 @@ onmessage = function(e) {
     return block
   }
 
+  function findLineLength(line) { // determine the length of a path
+    let length = 0;
+    for (let i = 1; i < line.length; i++) {
+      d = Math.sqrt(Math.pow(line[i-1][0]-line[i][0],2)+Math.pow(line[i-1][1]-line[i][1],2))
+      length += d
+    }
+    return length
+  }
+
   const divisions = config.Divisions;
   const subSteps = 50; //config.SubSteps;
   const smoothing = config.Smoothing;
   const boundary = config['Fill Boundary'] | (divisions == 1);
-  console.log(boundary)
+  const maxOrder = config.Order;
 
   const blockXsize = config.width/divisions;
   const blockYsize = config.height/divisions;
   //console.log(blockXsize,blockYsize,subSteps)
 
+  lengthMap = [] // create a list of the path for every posible curve order
+  for (let order = 0; order <= maxOrder; order++) {
+    block = makeBlock(0,0,order,blockXsize,blockYsize)
+    length = findLineLength(block)
+    lengthMap.push(length)
+    //console.log('order',order,'length',length)
+  }
+  //console.log(lengthMap)
+
+  function pixelToOrder(z, lengthMap) {
+    if (lengthMap.length == 1) {
+      return 0;
+    } else {
+      scaleMax = lengthMap[lengthMap.length-1]+(lengthMap[lengthMap.length-1]-lengthMap[lengthMap.length-2])/2
+      scale = scaleMax/255
+      z *= scale // map pixel value to target line length
+      //console.log(scaleMax ,z)
+      bestFit = Infinity
+      let bestIndex
+      for (let i = 0; i < lengthMap.length; i++) {
+        error = Math.abs(z - lengthMap[i])
+        if (error < bestFit) {
+          bestIndex = i;
+          bestFit = error;
+        }
+      }
+      return bestIndex
+    }
+    
+  }
+
+  
   for (let l = 0; l < (divisions-1); l++) { // run for every line
     let blocks = [];
     for (let k = 0; k < divisions; k++) { // run for every block on a line
       const blockXoffset = blockXsize*(0.5+k)
       const blockYoffset = blockYsize*(0.5+l+k%2)
-      const z = getPixel(blockXoffset, blockYoffset);
-      const order = Math.floor(z/20) // need to find good function
+      const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
       block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize*(k%2?1:-1))
       blocks.push(block);
     }
@@ -87,7 +128,7 @@ onmessage = function(e) {
       const blockXoffset = blockXsize*(0.5+k);
       const blockYoffset = blockYsize*0.5
       const z = getPixel(blockXoffset, blockYoffset);
-      const order = Math.floor(z/20) // need to find good function
+      const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
       block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize)
       drawing.push(block)
     }
@@ -95,7 +136,7 @@ onmessage = function(e) {
       const blockXoffset = blockXsize*(0.5+k);
       const blockYoffset = blockYsize*(divisions-0.5)
       const z = getPixel(blockXoffset, blockYoffset);
-      const order = Math.floor(z/20) // need to find good function
+      const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
       block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, -blockYsize)
       drawing.push(block)
     }
