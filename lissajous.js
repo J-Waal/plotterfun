@@ -4,6 +4,7 @@ postMessage(['sliders', [
   {label: 'Divisions', value: 5, min: 1, max: 20},
   //{label: 'SubSteps', value: 50, min: 10, max: 500},
   {label: 'Smoothing', value: 10, min: 0, max: 50},
+  {label: 'Fill Boundary', type:'checkbox'},
 ]]);
 
 
@@ -39,9 +40,23 @@ onmessage = function(e) {
     return [].concat(listAstrip,middlePart,listBstrip)
   }
 
+  function makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize) {
+    let block = [];
+    const numSteps = subSteps*(order+1)
+    const alpha = order%2?order+2:order+1; // odd
+    const beta = order%2?order+1:order+2; // even
+    for (let step = 0; step <= numSteps; step++) { // genarate the curve in a block
+      const t = step*Math.PI/numSteps
+      block.push([-blockXsize/2*Math.cos(t*alpha)+blockXoffset,-blockYsize/2*Math.cos(t*beta)+blockYoffset]);
+    }
+    return block
+  }
+
   const divisions = config.Divisions;
   const subSteps = 50; //config.SubSteps;
   const smoothing = config.Smoothing;
+  const boundary = config['Fill Boundary'] | (divisions == 1);
+  console.log(boundary)
 
   const blockXsize = config.width/divisions;
   const blockYsize = config.height/divisions;
@@ -54,14 +69,7 @@ onmessage = function(e) {
       const blockYoffset = blockYsize*(0.5+l+k%2)
       const z = getPixel(blockXoffset, blockYoffset);
       const order = Math.floor(z/20) // need to find good function
-      const alpha = order%2?order+2:order+1; // odd
-      const beta = order%2?order+1:order+2; // even
-      let block = [];
-      const numSteps = subSteps*(order+1)
-      for (let step = 0; step <= numSteps; step++) { // genarate the curve in a block
-        const t = step*Math.PI/numSteps
-        block.push([-blockXsize/2*Math.cos(t*alpha)+blockXoffset,-blockYsize*(k%2?1:-1)/2*Math.cos(t*beta)+blockYoffset]);
-      }
+      block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize*(k%2?1:-1))
       blocks.push(block);
     }
     //console.log(blocks)
@@ -74,6 +82,24 @@ onmessage = function(e) {
     drawing.push(blocks[0])
   }
 
+  if (boundary) { // add the missing blocks on the top and bottom lines
+    for (let k = 1; k < divisions; k += 2) { // fill the top row
+      const blockXoffset = blockXsize*(0.5+k);
+      const blockYoffset = blockYsize*0.5
+      const z = getPixel(blockXoffset, blockYoffset);
+      const order = Math.floor(z/20) // need to find good function
+      block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize)
+      drawing.push(block)
+    }
+    for (let k = 0; k < divisions; k += 2) { // fill the bottom row
+      const blockXoffset = blockXsize*(0.5+k);
+      const blockYoffset = blockYsize*(divisions-0.5)
+      const z = getPixel(blockXoffset, blockYoffset);
+      const order = Math.floor(z/20) // need to find good function
+      block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, -blockYsize)
+      drawing.push(block)
+    }
+  }
   
   postLines(drawing);
 }
