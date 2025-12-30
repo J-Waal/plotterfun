@@ -4,6 +4,7 @@ postMessage(['sliders', [
   {label: 'Divisions', value: 5, min: 1, max: 20},
   //{label: 'SubSteps', value: 50, min: 10, max: 500},
   {label: 'Smoothing', value: 10, min: 0, max: 50},
+  {label: 'Smoothing Method', type:'select', value:'Triangle', options:['Triangle', 'Cosine']},
   {label: 'Fill Boundary', type:'checkbox'},
   {label: 'Order', value: 5, min: 0, max: 10},
 ]]);
@@ -20,7 +21,7 @@ onmessage = function(e) {
     return Math.floor(Math.random() * max);
   }
 
-  function combine(listA, listB, smoothing) {
+  function combine(listA, listB, smoothing, cosine) {
     if (smoothing) {
       smoothing += 1;
       listAstrip = listA.slice(0,-smoothing)
@@ -36,6 +37,10 @@ onmessage = function(e) {
         yB = listBtoMerge[i][1]
         a = (smoothing-i-1)/(smoothing-1)
         b = i/(smoothing-1)
+        if (cosine) {
+          a = 0.5-0.5*Math.cos(Math.PI*a)
+          b = 0.5-0.5*Math.cos(Math.PI*b)
+        }
         //console.log(a,b,a+b)
         x = a*xA + b*xB
         y = a*yA + b*yB
@@ -75,6 +80,7 @@ onmessage = function(e) {
   const smoothing = config.Smoothing;
   const boundary = config['Fill Boundary'] | (divisions == 1);
   const maxOrder = config.Order;
+  const cosine = config['Smoothing Method'] == 'Cosine'
 
   const blockXsize = config.width/divisions;
   const blockYsize = config.height/divisions;
@@ -126,7 +132,7 @@ onmessage = function(e) {
     while (blocks.length > 1) {
       listB = blocks.pop();
       listA = blocks.pop();
-      blocks.push(combine(listA,listB,smoothing))
+      blocks.push(combine(listA,listB,smoothing, cosine))
     }
     drawing.push(blocks[0])
   }
