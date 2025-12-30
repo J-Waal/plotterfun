@@ -1,10 +1,9 @@
 importScripts('helpers.js')
 
 postMessage(['sliders', [
-  {label: 'Divisions', value: 5, min: 1, max: 20},
-  //{label: 'SubSteps', value: 50, min: 10, max: 500},
-  {label: 'Smoothing', value: 10, min: 0, max: 50},
-  {label: 'Smoothing Method', type:'select', value:'Triangle', options:['Triangle', 'Cosine']},
+  {label: 'Divisions', value: 5, min: 1, max: 40},
+  {label: 'Smoothing', value: 10, min: 0, max: 25},
+  {label: 'Smoothing Method', type:'select', value:'Cosine', options:['Linear', 'Cosine']},
   {label: 'Fill Boundary', type:'checkbox'},
   {label: 'Order', value: 5, min: 0, max: 10},
 ]]);
@@ -16,52 +15,45 @@ onmessage = function(e) {
 
   let drawing = [];
 
-
-  function getRandomInt(max) {
-    return Math.floor(Math.random() * max);
-  }
-
   function combine(listA, listB, smoothing, cosine) {
     if (smoothing) {
-      smoothing += 1;
-      listAstrip = listA.slice(0,-smoothing)
-      listBstrip = listB.slice(smoothing)
-      listAtoMerge = listA.slice(-smoothing)
-      listBtoMerge = listB.slice(0,smoothing)
-      //console.log(listAtoMerge,listBtoMerge)
+      smoothing += 1; // value of 1 uses the same point twice, same result as 0
+      const listAstrip = listA.slice(0,-smoothing)
+      const listBstrip = listB.slice(smoothing)
+      const listAtoMerge = listA.slice(-smoothing)
+      const listBtoMerge = listB.slice(0,smoothing)
       let middlePart = [];
       for (let i = 0; i < smoothing; i++){
-        xA = listAtoMerge[i][0]
-        xB = listBtoMerge[i][0]
-        yA = listAtoMerge[i][1]
-        yB = listBtoMerge[i][1]
-        a = (smoothing-i-1)/(smoothing-1)
-        b = i/(smoothing-1)
-        if (cosine) {
+        const xA = listAtoMerge[i][0]
+        const xB = listBtoMerge[i][0]
+        const yA = listAtoMerge[i][1]
+        const yB = listBtoMerge[i][1]
+        let a = (smoothing-i-1)/(smoothing-1)
+        let b = i/(smoothing-1)
+        if (cosine) { // change linear value to cosine
           a = 0.5-0.5*Math.cos(Math.PI*a)
           b = 0.5-0.5*Math.cos(Math.PI*b)
         }
-        //console.log(a,b,a+b)
-        x = a*xA + b*xB
-        y = a*yA + b*yB
+        const x = a*xA + b*xB
+        const y = a*yA + b*yB
         middlePart.push([x,y])
       }
-      //console.log(listAstrip,middlePart,listBstrip)
-      //console.log([].concat(listAstrip,middlePart,listBstrip))
       return [].concat(listAstrip,middlePart,listBstrip)
     } else {
-      return listA.concat(listB);
+      return [].concat(listA,listB);
     }
   }
 
   function makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize) {
-    let block = [];
-    const numSteps = subSteps*(order+1)
+    let block = []; // create block with given center location
+    const numSteps = subSteps*(order+1) // longer line needs more steps (also helps balance smoothing)
     const alpha = order%2?order+2:order+1; // odd
     const beta = order%2?order+1:order+2; // even
     for (let step = 0; step <= numSteps; step++) { // genarate the curve in a block
-      const t = step*Math.PI/numSteps
-      block.push([-blockXsize/2*Math.cos(t*alpha)+blockXoffset,-blockYsize/2*Math.cos(t*beta)+blockYoffset]);
+      const t = step*Math.PI/numSteps // phase on lissajous curve
+      const x = -blockXsize/2*Math.cos(t*alpha)+blockXoffset
+      const y = -blockYsize/2*Math.cos(t*beta)+blockYoffset
+      block.push([x,y]);
     }
     return block
   }
@@ -69,14 +61,14 @@ onmessage = function(e) {
   function findLineLength(line) { // determine the length of a path
     let length = 0;
     for (let i = 1; i < line.length; i++) {
-      d = Math.sqrt(Math.pow(line[i-1][0]-line[i][0],2)+Math.pow(line[i-1][1]-line[i][1],2))
-      length += d
+      const d = Math.sqrt(Math.pow(line[i-1][0]-line[i][0],2)+Math.pow(line[i-1][1]-line[i][1],2))
+      length += d // add distance of segment to total
     }
     return length
   }
 
   const divisions = config.Divisions;
-  const subSteps = 50; //config.SubSteps;
+  const subSteps = 50; // base number of sample per block
   const smoothing = config.Smoothing;
   const boundary = config['Fill Boundary'] | (divisions == 1);
   const maxOrder = config.Order;
@@ -84,55 +76,49 @@ onmessage = function(e) {
 
   const blockXsize = config.width/divisions;
   const blockYsize = config.height/divisions;
-  //console.log(blockXsize,blockYsize,subSteps)
 
-  lengthMap = [] // create a list of the path for every posible curve order
+  let lengthMap = [] // create a list of the path for every posible curve order
   for (let order = 0; order <= maxOrder; order++) {
-    block = makeBlock(0,0,order,blockXsize,blockYsize)
-    length = findLineLength(block)
+    const block = makeBlock(0,0,order,blockXsize,blockYsize)
+    const length = findLineLength(block)
     lengthMap.push(length)
-    //console.log('order',order,'length',length)
   }
-  //console.log(lengthMap)
 
   function pixelToOrder(z, lengthMap) {
     if (lengthMap.length == 1) {
-      return 0;
+      return 0; // only available option
     } else {
-      scaleMax = lengthMap[lengthMap.length-1]+(lengthMap[lengthMap.length-1]-lengthMap[lengthMap.length-2])/2
-      scale = scaleMax/255
+      const scaleMax = lengthMap[lengthMap.length-1]+(lengthMap[lengthMap.length-1]-lengthMap[lengthMap.length-2])/2
+      const scale = scaleMax/255
       z *= scale // map pixel value to target line length
-      //console.log(scaleMax ,z)
-      bestFit = Infinity
-      let bestIndex
+      let bestFit = Infinity
+      let bestIndex // I think it is safe to leave uninitialised
       for (let i = 0; i < lengthMap.length; i++) {
-        error = Math.abs(z - lengthMap[i])
-        if (error < bestFit) {
+        const error = Math.abs(z - lengthMap[i])
+        if (error < bestFit) { // find the option closest to the target value
           bestIndex = i;
           bestFit = error;
         }
       }
       return bestIndex
     }
-    
   }
 
-  
+
   for (let l = 0; l < (divisions-1); l++) { // run for every line
     let blocks = [];
     for (let k = 0; k < divisions; k++) { // run for every block on a line
       const blockXoffset = blockXsize*(0.5+k)
       const blockYoffset = blockYsize*(0.5+l+k%2)
-      const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
-      block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize*(k%2?1:-1))
+      const z = getPixel(blockXoffset, blockYoffset)
+      const order = pixelToOrder(z, lengthMap)
+      const block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize*(k%2?1:-1))
       blocks.push(block);
     }
-    //console.log(blocks)
-    // merge blocks into single line with smoothing
-    while (blocks.length > 1) {
-      listB = blocks.pop();
-      listA = blocks.pop();
-      blocks.push(combine(listA,listB,smoothing, cosine))
+    while (blocks.length > 1) { // merge blocks into single line with smoothing
+      const listB = blocks.pop();
+      const listA = blocks.pop();
+      blocks.push(combine(listA, listB, smoothing, cosine))
     }
     drawing.push(blocks[0])
   }
@@ -143,7 +129,7 @@ onmessage = function(e) {
       const blockYoffset = blockYsize*0.5
       const z = getPixel(blockXoffset, blockYoffset);
       const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
-      block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize)
+      const block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize)
       drawing.push(block)
     }
     for (let k = 0; k < divisions; k += 2) { // fill the bottom row
@@ -151,11 +137,10 @@ onmessage = function(e) {
       const blockYoffset = blockYsize*(divisions-0.5)
       const z = getPixel(blockXoffset, blockYoffset);
       const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
-      block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, -blockYsize)
+      const block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, -blockYsize)
       drawing.push(block)
     }
   }
-  
+
   postLines(drawing);
 }
-
