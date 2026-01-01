@@ -136,13 +136,37 @@ onmessage = function(e) {
   }
 
   if (boundary) { // add the missing blocks on the top and bottom lines
+    let topRow = []
+    if (joined) {
+      topRow[0] = [[0,0]] // add top left corner
+    }
     for (let k = 1; k < divisions; k += 2) { // fill the top row
       const blockXoffset = blockXsize*(0.5+k);
       const blockYoffset = blockYsize*0.5
       const z = getPixel(blockXoffset, blockYoffset);
       const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
       const block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize)
-      drawing.push(block)
+      if (joined) {
+        topRow[0] = topRow[0].concat(block)
+      } else {
+        topRow.push(block)
+      }
+    }
+    if (joined) {
+      topRow[0].push([config.width,0]) // add top right corner
+    }
+    if (leftright) {
+      topRow.map(item => item.reverse()).reverse() // invert direction
+    }
+    if (joined) {
+      drawing[0] = topRow[0].concat(drawing[0])
+    } else {
+      drawing = topRow.concat(drawing)
+    }
+
+    let botRow = []
+    if (joined) {
+      botRow[0] = []
     }
     for (let k = 0; k < divisions; k += 2) { // fill the bottom row
       const blockXoffset = blockXsize*(0.5+k);
@@ -150,7 +174,22 @@ onmessage = function(e) {
       const z = getPixel(blockXoffset, blockYoffset);
       const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
       const block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, -blockYsize)
-      drawing.push(block)
+      if (joined) {
+        botRow[0] = botRow[0].concat(block)
+      } else {
+        botRow.push(block)
+      }
+    }
+    if (joined) {
+      botRow[0].push([config.width,config.height]) // add bottom right corner
+    }
+    if (leftright && divisions % 2 == 0) {
+      botRow.map(item => item.reverse()).reverse() // invert direction
+    }
+    if (joined) {
+      drawing[0] = drawing[0].concat(botRow[0])
+    } else {
+      drawing = drawing.concat(botRow)
     }
   }
 
