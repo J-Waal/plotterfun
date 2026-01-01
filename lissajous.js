@@ -6,6 +6,8 @@ postMessage(['sliders', [
   {label: 'Smoothing Method', type:'select', value:'Cosine', options:['Linear', 'Cosine']},
   {label: 'Fill Boundary', type:'checkbox'},
   {label: 'Order', value: 5, min: 0, max: 10},
+  {label: 'Left Right', type:'checkbox'},
+  {label: 'Join Ends', type:'checkbox'},
 ]]);
 
 
@@ -13,7 +15,6 @@ onmessage = function(e) {
   const [ config, pixData ] = e.data;
   const getPixel = pixelProcessor(config, pixData)
 
-  let drawing = [];
 
   function combine(listA, listB, smoothing, cosine) {
     if (smoothing) {
@@ -70,9 +71,11 @@ onmessage = function(e) {
   const divisions = config.Divisions;
   const subSteps = 50; // base number of sample per block
   const smoothing = config.Smoothing;
-  const boundary = config['Fill Boundary'] | (divisions == 1);
+  const boundary = config['Fill Boundary'] | (divisions == 1); // single row has only edge
   const maxOrder = config.Order;
   const cosine = config['Smoothing Method'] == 'Cosine'
+  const leftright = config['Left Right']
+  const joined = config['Join Ends']
 
   const blockXsize = config.width/divisions;
   const blockYsize = config.height/divisions;
@@ -104,6 +107,8 @@ onmessage = function(e) {
     }
   }
 
+  let drawing = [];
+  if (joined) drawing[0]=[]
 
   for (let l = 0; l < (divisions-1); l++) { // run for every line
     let blocks = [];
@@ -120,7 +125,14 @@ onmessage = function(e) {
       const listA = blocks.pop();
       blocks.push(combine(listA, listB, smoothing, cosine))
     }
-    drawing.push(blocks[0])
+    if (leftright && l % 2 == 1) {
+      blocks[0].reverse()
+    }
+    if (joined) {
+      drawing[0]=drawing[0].concat(blocks[0]);
+    } else {
+      drawing.push(blocks[0])
+    }
   }
 
   if (boundary) { // add the missing blocks on the top and bottom lines
