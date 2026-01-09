@@ -1,6 +1,6 @@
 importScripts('helpers.js')
 
-postMessage(['sliders', [
+postMessage(['sliders', defaultControls.concat([
   {label: 'Divisions', value: 5, min: 1, max: 40},
   {label: 'Smoothing', value: 10, min: 0, max: 25},
   {label: 'Smoothing Method', type:'select', value:'Cosine', options:['Linear', 'Cosine']},
@@ -8,7 +8,7 @@ postMessage(['sliders', [
   {label: 'Order', value: 5, min: 0, max: 10},
   {label: 'Left Right', type:'checkbox'},
   {label: 'Join Ends', type:'checkbox'},
-]]);
+])]);
 
 
 onmessage = function(e) {
