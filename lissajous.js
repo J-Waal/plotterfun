@@ -1,7 +1,8 @@
 importScripts('helpers.js')
 
 postMessage(['sliders', defaultControls.concat([
-  {label: 'Divisions', value: 5, min: 1, max: 40},
+  {label: 'DivisionsX', value: 20, min: 1, max: 40},
+  {label: 'DivisionsY', value: 20, min: 1, max: 40},
   {label: 'Smoothing', value: 10, min: 0, max: 25},
   {label: 'Smoothing Method', type:'select', value:'Cosine', options:['Linear', 'Cosine']},
   {label: 'Fill Boundary', type:'checkbox'},
@@ -68,17 +69,18 @@ onmessage = function(e) {
     return length
   }
 
-  const divisions = config.Divisions;
+  const divisionsX = config.DivisionsX;
+  const divisionsY = config.DivisionsY;
   const subSteps = 50; // base number of sample per block
   const smoothing = config.Smoothing;
-  const boundary = config['Fill Boundary'] | (divisions == 1); // single row has only edge
+  const boundary = config['Fill Boundary'] | (divisionsX == 1) | (divisionsY == 1); // single row has only edge
   const maxOrder = config.Order;
   const cosine = config['Smoothing Method'] == 'Cosine'
   const leftright = config['Left Right']
   const joined = config['Join Ends']
 
-  const blockXsize = config.width/divisions;
-  const blockYsize = config.height/divisions;
+  const blockXsize = config.width/divisionsX;
+  const blockYsize = config.height/divisionsY;
 
   let lengthMap = [] // create a list of the path for every posible curve order
   for (let order = 0; order <= maxOrder; order++) {
@@ -110,9 +112,9 @@ onmessage = function(e) {
   let drawing = [];
   if (joined) drawing[0]=[]
 
-  for (let l = 0; l < (divisions-1); l++) { // run for every line
+  for (let l = 0; l < (divisionsY-1); l++) { // run for every line
     let blocks = [];
-    for (let k = 0; k < divisions; k++) { // run for every block on a line
+    for (let k = 0; k < divisionsX; k++) { // run for every block on a line
       const blockXoffset = blockXsize*(0.5+k)
       const blockYoffset = blockYsize*(0.5+l+k%2)
       const z = getPixel(blockXoffset, blockYoffset)
@@ -140,7 +142,7 @@ onmessage = function(e) {
     if (joined) {
       topRow[0] = [[0,0]] // add top left corner
     }
-    for (let k = 1; k < divisions; k += 2) { // fill the top row
+    for (let k = 1; k < divisionsX; k += 2) { // fill the top row
       const blockXoffset = blockXsize*(0.5+k);
       const blockYoffset = blockYsize*0.5
       const z = getPixel(blockXoffset, blockYoffset);
@@ -168,9 +170,9 @@ onmessage = function(e) {
     if (joined) {
       botRow[0] = []
     }
-    for (let k = 0; k < divisions; k += 2) { // fill the bottom row
+    for (let k = 0; k < divisionsX; k += 2) { // fill the bottom row
       const blockXoffset = blockXsize*(0.5+k);
-      const blockYoffset = blockYsize*(divisions-0.5)
+      const blockYoffset = blockYsize*(divisionsY-0.5)
       const z = getPixel(blockXoffset, blockYoffset);
       const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
       const block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, -blockYsize)
@@ -183,8 +185,8 @@ onmessage = function(e) {
     if (joined) {
       botRow[0].push([config.width,config.height]) // add bottom right corner
     }
-    if (leftright && divisions % 2 == 0) {
-      botRow.map(item => item.reverse()).reverse() // invert direction
+    if (leftright && divisionsY % 2 == 0) {
+      botRow.map(item => item.reverse()).reverse() // invert bottom row direction
     }
     if (joined) {
       drawing[0] = drawing[0].concat(botRow[0])
