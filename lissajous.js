@@ -3,6 +3,7 @@ importScripts('helpers.js')
 postMessage(['sliders', defaultControls.concat([
   {label: 'DivisionsX', value: 20, min: 1, max: 40},
   {label: 'DivisionsY', value: 20, min: 1, max: 40},
+  {label: 'Sampling', type:'select', value:'Average', options:['Center', 'Average']},
   {label: 'Smoothing', value: 10, min: 0, max: 25},
   {label: 'Smoothing Method', type:'select', value:'Cosine', options:['Linear', 'Cosine']},
   {label: 'Fill Boundary', type:'checkbox'},
@@ -78,6 +79,7 @@ onmessage = function(e) {
   const cosine = config['Smoothing Method'] == 'Cosine'
   const leftright = config['Left Right']
   const joined = config['Join Ends']
+  const average = config.Sampling == 'Average'
 
   const blockXsize = config.width/divisionsX;
   const blockYsize = config.height/divisionsY;
@@ -109,6 +111,41 @@ onmessage = function(e) {
     }
   }
 
+  function getAveragePixel(p1,p2) {
+    const minX = Math.round(Math.min(p1[0],p2[0])); // Extract rectangle bounds
+    const maxX = Math.round(Math.max(p1[0],p2[0]));
+    const minY = Math.round(Math.min(p1[1],p2[1]));
+    const maxY = Math.round(Math.max(p1[1],p2[1]));
+    const area = (maxX - minX) * (maxY - minY);
+    let sum = 0;
+    for (let x = minX; x < maxX; x++) {
+      for (let y = minY; y < maxY; y++) {
+        sum += getPixel(x,y);
+      }
+    }
+    //console.log(sum,area)
+    return sum / area;
+  }
+
+  image = []; // estimated darkness values so we can do dithering
+  for (let l = 0; l < (divisionsY); l++) { // run for every line
+    const startY = blockYsize * l;
+    const endY = blockYsize * (l + 1);
+    let row = [];
+    for (let k = 0; k < divisionsX; k++) { // run for every block on a line
+      const startX = blockXsize * k;
+      const endX = blockXsize * (k + 1);
+      if (average) {
+        row.push(getAveragePixel([startX,startY],[endX,endY]));
+      } else  {
+        row.push(getPixel((startX+endX)/2,(startY+endY)/2));
+      }
+    }
+    image.push(row);
+  }
+  console.log(image);
+
+
   let drawing = [];
   if (joined) drawing[0]=[]
 
@@ -117,7 +154,7 @@ onmessage = function(e) {
     for (let k = 0; k < divisionsX; k++) { // run for every block on a line
       const blockXoffset = blockXsize*(0.5+k)
       const blockYoffset = blockYsize*(0.5+l+k%2)
-      const z = getPixel(blockXoffset, blockYoffset)
+      const z = image[l+k%2][k]
       const order = pixelToOrder(z, lengthMap)
       const block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize*(k%2?1:-1))
       blocks.push(block);
@@ -145,8 +182,8 @@ onmessage = function(e) {
     for (let k = 1; k < divisionsX; k += 2) { // fill the top row
       const blockXoffset = blockXsize*(0.5+k);
       const blockYoffset = blockYsize*0.5
-      const z = getPixel(blockXoffset, blockYoffset);
-      const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
+      const z = image[0][k]
+      const order = pixelToOrder(z, lengthMap)
       const block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, blockYsize)
       if (joined) {
         topRow[0] = topRow[0].concat(block)
@@ -173,8 +210,8 @@ onmessage = function(e) {
     for (let k = 0; k < divisionsX; k += 2) { // fill the bottom row
       const blockXoffset = blockXsize*(0.5+k);
       const blockYoffset = blockYsize*(divisionsY-0.5)
-      const z = getPixel(blockXoffset, blockYoffset);
-      const order = pixelToOrder(getPixel(blockXoffset, blockYoffset), lengthMap)
+      const z =  image[divisionsY-1][k]
+      const order = pixelToOrder(z, lengthMap)
       const block = makeBlock(blockXoffset, blockYoffset, order, blockXsize, -blockYsize)
       if (joined) {
         botRow[0] = botRow[0].concat(block)
